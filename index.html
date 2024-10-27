@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de contraste</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        h1::before {
+            content: "";
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background-color: #ffc107;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .color-inputs {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .color-input {
+            display: flex;
+            align-items: center;
+        }
+        .color-input input {
+            margin-left: 10px;
+            padding: 5px;
+        }
+        .results {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .ratio {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .wcag {
+            font-size: 24px;
+            font-weight: bold;
+            color: green;
+        }
+        .file-input {
+            margin-bottom: 20px;
+        }
+        .analyze-section {
+            margin-bottom: 20px;
+        }
+        .analyze-section h2 {
+            margin-bottom: 10px;
+        }
+        .threshold {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .threshold input {
+            margin-left: 10px;
+            width: 200px;
+        }
+        .url-input {
+            display: flex;
+            align-items: center;
+        }
+        .url-input input {
+            flex-grow: 1;
+            padding: 5px;
+            margin-right: 10px;
+        }
+        .url-input button {
+            background-color: #f0f0f0;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .generate-btn {
+            background-color: #ffc107;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .contrast-text {
+            background-color: black;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Verificador de contraste</h1>
+        <div class="color-inputs">
+            <div class="color-input">
+                <label for="color1">Color 1</label>
+                <input type="text" id="color1" value="#000000">
+            </div>
+            <div class="color-input">
+                <label for="color2">Color 2</label>
+                <input type="text" id="color2" value="#ffffff">
+            </div>
+        </div>
+        <div class="results">
+            <div>
+                <h3>Resultados del contraste</h3>
+                <p>Ratio de contraste: <span class="ratio" id="contrastRatio">--</span></p>
+            </div>
+            <div>
+                <h3>Calificación WCAG:</h3>
+                <p class="wcag" id="wcagLevel">--</p>
+            </div>
+        </div>
+        <div class="file-input">
+            <button>Seleccionar archivo</button>
+            <span>Ningún archivo</span>
+        </div>
+        <div class="analyze-section">
+            <h2>Analizar Contraste de Color en Sitio Web</h2>
+            <div class="threshold">
+                <label for="threshold">Umbral de contraste mínimo: 4.5</label>
+                <input type="range" id="threshold" min="1" max="21" value="4.5" step="0.1">
+            </div>
+            <div class="url-input">
+                <input type="text" placeholder="https://ejemplo.com">
+                <button>↓</button>
+                <button>↻</button>
+            </div>
+        </div>
+        <button class="generate-btn">GENERAR INFORME EN PDF</button>
+        <div class="contrast-text" id="contrastText">
+            TEXTO CONTRASTE
+        </div>
+    </div>
+
+    <script>
+        function hexToRgb(hex) {
+            const bigint = parseInt(hex.slice(1), 16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+            return [r, g, b];
+        }
+
+        function luminance(r, g, b) {
+            const a = [r, g, b].map(function (v) {
+                v /= 255;
+                return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            });
+            return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+        }
+
+        function calculateContrast(color1, color2) {
+            const rgb1 = hexToRgb(color1);
+            const rgb2 = hexToRgb(color2);
+            const lum1 = luminance(rgb1[0], rgb1[1], rgb1[2]) + 0.05;
+            const lum2 = luminance(rgb2[0], rgb2[1], rgb2[2]) + 0.05;
+            return lum1 > lum2 ? (lum1 / lum2) : (lum2 / lum1);
+        }
+
+        function updateContrast() {
+            const color1 = document.getElementById("color1").value;
+            const color2 = document.getElementById("color2").value;
+            const contrastRatio = calculateContrast(color1, color2).toFixed(2);
+
+            document.getElementById("contrastRatio").textContent = contrastRatio;
+
+            let wcagLevel = "";
+            if (contrastRatio >= 7) {
+                wcagLevel = "AAA";
+                document.getElementById("wcagLevel").style.color = "green";
+            } else if (contrastRatio >= 4.5) {
+                wcagLevel = "AA";
+                document.getElementById("wcagLevel").style.color = "orange";
+            } else {
+                wcagLevel = "No accesible";
+                document.getElementById("wcagLevel").style.color = "red";
+            }
+
+            document.getElementById("wcagLevel").textContent = wcagLevel;
+            document.getElementById("contrastText").style.color = color1;
+            document.getElementById("contrastText").style.backgroundColor = color2;
+        }
+
+        document.getElementById("color1").addEventListener("input", updateContrast);
+        document.getElementById("color2").addEventListener("input", updateContrast);
+
+        window.onload = updateContrast;
+    </script>
+
+    <?php
+        // PHP para manejar valores predeterminados o futuros desarrollos si fuera necesario
+        $color1 = "#000000";
+        $color2 = "#ffffff";
+    ?>
+</body>
+</html>
